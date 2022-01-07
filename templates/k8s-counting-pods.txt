@@ -1,0 +1,23 @@
+<i>Time: {{.DateTime}}</i>
+<b>COUNTING PODS</b>
+All running pods: {{.CountAll}} pods
+400m CPU request: {{.Count400mCpu}} pods
+200m CPU request: {{.Count200mCpu}} pods
+
+Hello Bacsi Frontend: {{.CountBacsiFrontend}} pods
+Hello Bacsi Backend: {{.CountBacsiBackend}} pods
+
+Hello Sehat Frontend: {{.CountSehatFrontend}} pods
+Hello Sehat Backend: {{.CountSehatBackend}} pods
+
+<b>COUNTING NODES</b>
+Total: {{.CountNodes}} nodes
+{{range $key, $val := .CountNodePools}}Pool <i>{{$key}}</i>: {{$val}} nodes
+{{end}}
+
+<b>CLUSTER RESOURCES</b>
+CPU Request:  {{.ClusterCPURequests}}m
+CPU Request Fraction: {{.ClusterCPURequestsFraction}}%
+CPU Capacity: {{.ClusterCPUCapacity}}m
+CPU Allocatable: {{.ClusterCPUAllocatable}}m
+--------------------------------------

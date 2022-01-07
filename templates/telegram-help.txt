@@ -1,0 +1,3 @@
+<b>Supported commands:</b>
+/sayhi
+/k8s - kubernetes analysis
