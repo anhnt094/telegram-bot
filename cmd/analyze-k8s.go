@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"bot/common"
 	"bot/component/k8s"
+	"bot/component/telegram"
 	"bot/config"
 )
 
@@ -17,7 +17,7 @@ func analyzeK8s() error {
 		return err
 	}
 
-	bot, err := common.CreateNewBot(conf.TelegramBotToken)
+	bot, err := telegram.CreateNewBot(conf.TelegramBotToken)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func analyzeK8s() error {
 		return err
 	}
 
-	if err := common.SendMessageToGroup(bot, conf.TelegramGroupId, result); err != nil {
+	if err := telegram.SendMessageToGroup(bot, conf.TelegramGroupId, result); err != nil {
 		return err
 	}
 

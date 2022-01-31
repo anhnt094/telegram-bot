@@ -1,0 +1,3 @@
+<i>Time: {{.DateTime}}</i>
+<b>USDT Highest P2p Binance Price</b>
+{{.UsdtPrice}} VND

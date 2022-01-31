@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"bot/common"
 	"bytes"
 	"context"
 	"fmt"
@@ -92,22 +93,22 @@ type ClusterAllocatedResources struct {
 	MemoryCapacity int64 `json:"memoryCapacity"`
 }
 
-type Report struct {
-	CountBacsiFrontend         int
-	CountBacsiBackend          int
-	CountSehatFrontend         int
-	CountSehatBackend          int
-	Count400mCpu               int
-	Count200mCpu               int
-	CountAll                   int
-	DateTime                   string
-	ClusterCPURequests         int64
-	ClusterCPURequestsFraction string
-	ClusterCPUAllocatable      int64
-	ClusterCPUCapacity         int64
-	CountNodes                 int
-	CountNodePools             map[string]int
-}
+//type Report struct {
+//	CountBacsiFrontend         int
+//	CountBacsiBackend          int
+//	CountSehatFrontend         int
+//	CountSehatBackend          int
+//	Count400mCpu               int
+//	Count200mCpu               int
+//	CountAll                   int
+//	DateTime                   string
+//	ClusterCPURequests         int64
+//	ClusterCPURequestsFraction string
+//	ClusterCPUAllocatable      int64
+//	ClusterCPUCapacity         int64
+//	CountNodes                 int
+//	CountNodePools             map[string]int
+//}
 
 func Authenticate(kubeconfig string) (*kubernetes.Clientset, error) {
 	var config *rest.Config
@@ -137,7 +138,7 @@ func Analyze(clientSet *kubernetes.Clientset) (string, error) {
 	var tmpl *template.Template
 	tmpl = template.Must(template.ParseFiles("templates/k8s-counting-pods.txt"))
 
-	var report Report
+	var report common.Report
 	//init the loc
 	loc, _ := time.LoadLocation("Asia/Ho_Chi_Minh")
 	//set timezone
@@ -321,7 +322,7 @@ func countPodsWithCpuRequest(clientSet *kubernetes.Clientset, namespace string, 
 	return len(pods.Items), nil
 }
 
-func countPods(clientSet *kubernetes.Clientset, report *Report) error {
+func countPods(clientSet *kubernetes.Clientset, report *common.Report) error {
 	var err error
 
 	report.CountBacsiFrontend, err = countRunningPods(clientSet, "production", "app=discover-fe-bacsi")
@@ -362,7 +363,7 @@ func countPods(clientSet *kubernetes.Clientset, report *Report) error {
 	return nil
 }
 
-func getClusterAllocatedResources(clientSet *kubernetes.Clientset, report *Report) error {
+func getClusterAllocatedResources(clientSet *kubernetes.Clientset, report *common.Report) error {
 	nodes, err := listNodes(clientSet)
 	if err != nil {
 		return err

@@ -20,21 +20,32 @@ func Execute() {
 		}},
 	}
 
-	app.Commands = []*cli.Command{{
-		Name:  "listen",
-		Usage: "Listen updates from Telegram",
-		Action: func(c *cli.Context) error {
-			if err := listen(); err != nil {
-				return err
-			}
-			return nil
+	app.Commands = []*cli.Command{
+		{
+			Name:  "listen",
+			Usage: "Listen updates from Telegram",
+			Action: func(c *cli.Context) error {
+				if err := listen(); err != nil {
+					return err
+				}
+				return nil
+			},
 		},
-	},
 		{
 			Name:  "analyze-k8s",
 			Usage: "Run kubernetes analysis",
 			Action: func(c *cli.Context) error {
 				if err := analyzeK8s(); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "get-usdt-price",
+			Usage: "Get highest usdt price on P2P Binance",
+			Action: func(c *cli.Context) error {
+				if err := getUsdtPrice(); err != nil {
 					return err
 				}
 				return nil

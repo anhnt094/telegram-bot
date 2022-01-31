@@ -14,6 +14,10 @@ type Config struct {
 
 func GetConfigs() (*Config, error) {
 	telegramBotToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	if telegramBotToken == "" {
+		return nil, errors.New("can't get TELEGRAM_BOT_TOKEN")
+	}
+
 	telegramGroupId, err := strconv.Atoi(os.Getenv("TELEGRAM_GROUP_ID"))
 	if err != nil {
 		return nil, errors.New("can't get TELEGRAM_GROUP_ID")

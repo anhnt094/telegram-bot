@@ -1,3 +1,5 @@
-<b>Supported commands:</b>
+<b>I know these commands:</b>
+/help
+/usdt
 /sayhi
-/k8s - kubernetes analysis
+/k8s
