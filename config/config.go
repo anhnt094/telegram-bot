@@ -10,6 +10,8 @@ type Config struct {
 	TelegramBotToken string
 	TelegramGroupId  int64
 	KubeConfig       string // path to kubeconfig file
+	AccessToken      string
+	WalletAddress    string
 }
 
 func GetConfigs() (*Config, error) {
@@ -25,9 +27,14 @@ func GetConfigs() (*Config, error) {
 
 	kubeconfig := os.Getenv("KUBECONFIG")
 
+	token := os.Getenv("ACCESS_TOKEN")
+	wallet := os.Getenv("WALLET_ADDRESS")
+
 	return &Config{
 		TelegramBotToken: telegramBotToken,
 		TelegramGroupId:  int64(telegramGroupId),
 		KubeConfig:       kubeconfig,
+		AccessToken:      token,
+		WalletAddress:    wallet,
 	}, nil
 }

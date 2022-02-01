@@ -1,0 +1,97 @@
+###### DEPLOYMENT
+image:
+  repository: ${CI_REGISTRY_IMAGE}
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ${BUILD_VERSION}
+
+imagePullSecrets:
+  - name: regcred
+
+containerName: golang
+
+replicaCount: 1
+
+ports:
+  - name: http
+    containerPort: 8084
+    protocol: TCP
+
+volumeMounts:
+  - name: config
+    mountPath: /root/jwt_public_key.pem
+    subPath: jwt_public_key.pem
+
+volumes:
+  - name: config
+    configMap:
+      name: vaccination-be
+
+livenessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 8084
+readinessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 8084
+
+env:
+  - name: "APP_ENV"
+    value: "production"
+  - name: "APP_HOST"
+    value: "0.0.0.0"
+  - name: "APP_PORT"
+    value: "8084"
+  - name: "DB_HOST"
+    value: "${PRODUCTION_DB_HOST}"
+  - name: "DB_PORT"
+    value: "5432"
+  - name: "DB_NAME"
+    value: "${PRODUCTION_DB_NAME}"
+  - name: "DB_USERNAME"
+    value: "${PRODUCTION_DB_USERNAME}"
+  - name: "DB_PASSWORD"
+    value: "${PRODUCTION_DB_PASSWORD}"
+  - name: "ACCESS_SECRET"
+    value: "${PRODUCTION_ACCESS_SECRET}"
+  - name: "JWT_PUBLIC_KEY"
+    value: "/root/jwt_public_key.pem"
+  - name: "CMS_ENDPOINT_TEMPLATE"
+    value: "http://internal-wp.%s"
+  - name: "BASIC_AUTH_USERNAME"
+    value: "${PRODUCTION_BASIC_AUTH_USERNAME}"
+  - name: "BASIC_AUTH_PASSWORD"
+    value: "${PRODUCTION_BASIC_AUTH_PASSWORD}"
+
+# lifecycle:
+#   postStart:
+#     exec:
+#       command: ["/bin/sh", "-c", "php artisan queue:work --sleep=3 --tries=3"]
+
+resources: 
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  requests:
+    cpu: 200m
+    memory: 100Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 30
+  targetCPUUtilizationPercentage: 100
+  # targetMemoryUtilizationPercentage: 80
+
+nameOverride: ""
+fullnameOverride: ""
+
+
+###### SERVICE
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8084
+  protocol: TCP
+  name: http

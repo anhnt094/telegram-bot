@@ -1,0 +1,96 @@
+variables:
+  DOCKER_DRIVER: overlay2
+  CI_DEFAULT_BRANCH: 'main'
+  HOTFIX_BRANCH: 'hotfixes'
+
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^(Draft:|\[?WIP\]?).*/ && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $HOTFIX_BRANCH)'
+      variables:
+        DEPLOY_TYPE: "merge-request"
+    - if: $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)
+      variables:
+        DEPLOY_TYPE: "release"
+    - if: $CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == $HOTFIX_BRANCH)
+      variables:
+        DEPLOY_TYPE: "release-hotfix"
+
+
+stages:
+  - build
+  - deploy-staging
+
+###################
+### BUILD IMAGE ###
+###################
+build-image:
+  image: docker:stable
+  tags:
+    - hhg
+    - gitlab-runner-manager
+  stage: build
+  interruptible: true
+  script:
+    # Get BUILD_VERSION
+    - if [ ! -e version.txt ]; then echo "1.0.0.<build>-default-version" > version.txt; echo "file version.txt is missing..."; fi
+    - export BUILD_VERSION=$(sed "s/<build>/$CI_PIPELINE_IID/g" version.txt)
+    - echo $BUILD_VERSION
+
+    - export IMAGE_NAME=$CI_REGISTRY_IMAGE:$BUILD_VERSION
+    - echo $IMAGE_NAME
+
+    - docker login -u $CUSTOM_REGISTRY_USER -p $CUSTOM_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+  rules:
+    - if: $DEPLOY_TYPE == "merge-request" || $DEPLOY_TYPE == "release" || $DEPLOY_TYPE == "release-hotfix"
+
+
+.deploy:
+  image: registry.gitlab.com/hellohealthgroup/utilities/deployer:v3
+  tags:
+    - gitlab-runner-manager
+    - hhg
+  interruptible: true
+  dependencies:
+    - build-image
+  script:
+    # Get BUILD_VERSION
+    - if [ ! -e version.txt ]; then echo "1.0.0.<build>-default-version" > version.txt; echo "file version.txt is missing..."; fi
+    - export BUILD_VERSION=$(sed "s/<build>/$CI_PIPELINE_IID/g" version.txt)
+    - echo $BUILD_VERSION
+
+    # Create values.yaml file
+    - cd ${HELM_CHART_PATH}
+    - envsubst < ${HELM_VALUES_FILE}-example > ${HELM_VALUES_FILE}
+
+    # Deploy to k8s
+    - helm upgrade --install ${HELM_RELEASE_NAME} ${HELM_CHART_PATH} --namespace=${HELM_NAMESPACE} -f ${HELM_VALUES_FILE}
+    - kubectl --namespace=${HELM_NAMESPACE} rollout status deployment ${HELM_RELEASE_NAME} --timeout=600s
+
+
+######################
+### DEPLOY STAGING ###
+######################
+expose-metrics:
+  stage: deploy-staging
+  extends: .deploy
+  before_script:
+    # K8s authentication
+    - export KUBECONFIG=${KUBECONFIG_HHG_TECH_DEVELOPMENT}
+
+    - export INGRESS_ENABLED=true
+    - export INGRESS_DOMAIN=tuananh-test.hellohealthgroup.com
+
+    ### Relating to Deploy
+    - export COMMAND="./app expose-metrics"
+    - export HELM_RELEASE_NAME=metrics
+    - export HELM_NAMESPACE=tuananh-test
+    - export HELM_VALUES_FILE="${CI_PROJECT_DIR}/k8s-manifest/staging/values.yaml"
+    - export HELM_CHART_PATH="${CI_PROJECT_DIR}/k8s-manifest/staging"
+  environment:
+    name: staging/metrics
+    url: https://tuananh-test.hellohealthgroup.com/metrics
+  rules:
+    - if: $DEPLOY_TYPE == "release"

@@ -42,6 +42,16 @@ func Execute() {
 			},
 		},
 		{
+			Name:  "expose-metrics",
+			Usage: "Expose prometheus metrics",
+			Action: func(c *cli.Context) error {
+				if err := exposeMetrics(); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
+		{
 			Name:  "get-usdt-price",
 			Usage: "Get highest usdt price on P2P Binance",
 			Action: func(c *cli.Context) error {

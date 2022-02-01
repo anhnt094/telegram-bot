@@ -1,0 +1,114 @@
+###### DEPLOYMENT
+image:
+  repository: ${CI_REGISTRY_IMAGE}
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ${BUILD_VERSION}
+
+imagePullSecrets:
+  - name: regcred
+
+containerName: golang
+
+replicaCount: 3
+
+command: ${COMMAND}
+
+ports:
+  - name: http
+    containerPort: 80
+    protocol: TCP
+
+#volumeMounts:
+#  - name: config
+#    mountPath: /root/jwt_public_key.pem
+#    subPath: jwt_public_key.pem
+
+#volumes:
+#  - name: config
+#    configMap:
+#      name: vaccination-be
+
+livenessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 80
+readinessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 80
+
+env:
+  - name: "ACCESS_TOKEN"
+    value: "${ACCESS_TOKEN}"
+  - name: "WALLET_ADDRESS"
+    value: "${WALLET_ADDRESS}"
+
+# lifecycle:
+#   postStart:
+#     exec:
+#       command: ["/bin/sh", "-c", "php artisan queue:work --sleep=3 --tries=3"]
+
+resources: 
+  limits:
+  #   cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 50Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 30
+  targetCPUUtilizationPercentage: 100
+  # targetMemoryUtilizationPercentage: 80
+
+nameOverride: ""
+fullnameOverride: ""
+
+
+###### SERVICE
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 80
+  protocol: TCP
+  name: http
+
+
+###### INGRESS
+ingress:
+  enabled: ${INGRESS_ENABLED}
+  annotations:
+    kubernetes.io/ingress.class: internal-ingress
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/client-body-buffer-size: "10k"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.org/location-snippets: |
+      client_header_buffer_size 1k;
+      large_client_header_buffers 2 1k;
+      client_body_timeout 12;
+      client_header_timeout 12;
+      keepalive_timeout 15;
+      send_timeout 10;
+      gzip             on;
+      gzip_comp_level  2;
+      gzip_min_length  1000;
+      gzip_proxied     expired no-cache no-store private auth;
+      gzip_types       text/plain application/x-javascript text/xml text/css application/xml;
+  hosts:
+  - host: ${INGRESS_DOMAIN}
+    http:
+      paths:
+      - pathType: Prefix
+        path: /
+        backend:
+          service:
+            name: ${HELM_RELEASE_NAME}
+            port:
+              number: 80
+  #tls:
+  #- hosts:
+  #    - ${INGRESS_DOMAIN}
